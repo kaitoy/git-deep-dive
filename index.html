@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <title>Git Deep Dive</title>
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/reveal.css" />
+    <link rel="stylesheet" href="css/theme/blood.css" />
+    <link rel="stylesheet" href="css/git-deep-dive.css" />
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/monokai.css" />
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match(/print-pdf/gi)
+        ? 'css/print/pdf.css'
+        : 'css/print/paper.css';
+      document.getElementsByTagName('head')[0].appendChild(link);
+    </script>
+  </head>
+  <body class="git-deep-dive">
+    <div class="reveal">
+      <div class="slides">
+        <section data-markdown>
+          <script type="text/template">
+            # Git Deep Dive
+          </script>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            ## Contents
+            1. Gitとは
+            2. なぜGitを使うのか
+            3. Gitのコマンドおさらい
+            4. Gitのリポジトリ詳解
+          </script>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            ![](images/dogeza_man.png)
+
+            Gitコマンドの使い方はだいたい知っている前提で、
+
+            ほとんど解説しません。あしからず。
+          </script>
+        </section>
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ![](images/git.png)
+              # Gitとは
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              * <span class="emphasize">バージョン管理ツール</span>のデファクトスタンダード。
+              * 2005年にLinus Torvaldsが考案、濱野純らが開発したOSS。
+              * もともとLinuxカーネルソースを管理するために作られた。
+                  * 巨大なソースセットも管理できる。
+                  * 速い。
+                  * <span class="emphasize">分散型。</span>
+            </script>
+          </section>
+          <section data-state="vcs" class="typed">
+            <img src="images/business_man3_1_question.png" />
+            <div>
+              <span id="vcs"></span>
+            </div>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              * バージョン管理ツール(VCS)はファイルセットの<span class="emphasize">変更管理</span>をするツール。
+                  * ファイルへの変更を記録して履歴を作ってくれる。
+                  * 変更の日時、変更者、変更の経緯などがあとからわかる。
+                  * 過去のバージョンをいつでも参照できる。
+              * 履歴を保存するDBはリポジトリと呼ばれる。
+              * 履歴を追加する操作や追加した履歴をコミットと呼ぶ。
+              * 他にClearCase、CVS、Subversion、Mercurialなどがある。
+            </script>
+          </section>
+          <section data-state="subversion" class="typed">
+            <img src="images/business_woman3_1_question.png" />
+            <div>
+              <span id="subversion"></span>
+            </div>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              Subversionとぱっと見似ているけど実は<span class="emphasize">全然違う</span>。
+
+              |       　     |   Subversion   |           Git          |
+              |:------------:|:--------------:|:----------------------:|
+              |  リポジトリ  |     集中型     |         分散型         |
+              | 変更管理単位 |    ファイル    |      ファイルセット全体      |
+              | 変更管理方式 | 変更内容を記録 | スナップショットを記録 |
+              | 履歴の永続性 |       高       |           低           |
+            </script>
+          </section>
+          <section data-state="nw" class="typed">
+            <img src="images/hirameki_man.png" />
+            <div>
+              <span id="nw"></span>
+            </div>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## それぞれ説明します。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### 集中型リポジトリと分散型リポジトリ
+              * Subversionは集中型なので、
+                  - 1つのファイルセットにリポジトリが一つだけ。
+                  - 中央集権的なリポジトリサーバがある。
+                  - <span class="emphasize">各開発者はワーキングディレクトリを作って、サーバと同期させる</span>。
+              * Gitは分散型なので、
+                  - 1つのファイルセットにリポジトリが複数。
+                  - リポジトリ間に主従関係はない。(けど普通は便宜的に主従関係にする。)
+                  - <span class="emphasize">各開発者がリポジトリのクローンを持つ</span>。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### Subversionの集中型リポジトリ
+              ![](images/svn-repo.png)
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### Gitの分散型リポジトリ
+              ![](images/git-repos.png)
+            </script>
+          </section>
+          <section>
+            <h2>変更管理単位の違い</h2>
+            <div class="left">
+              <img src="images/svn-revs.png" />
+              <h3>Subversion</h3>
+            </div>
+            <div class="right">
+              <img src="images/git-revs.png" />
+              <h3>Git</h3>
+            </div>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### 変更管理方式の違い
+              * Subversionはファイル単位の変更履歴として、
+                  - 前リビジョンのコンテンツからの<span class="emphasize">差分</span>を記録。
+                  - ファイルパスの変更を記録。
+                  - ファイル属性の変更を記録。
+              * Gitはファイルセット全体の変更履歴として、
+                  - リビジョン毎にファイルセット全体のスナップショットを記録。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### 履歴の永続性の違い
+              * Subversionの履歴は永続的
+                  - <span class="emphasize">リビジョンを変更する手段はない</span>。
+                  - リビジョンの属性(e.g. コミットメッセージ)は変えられるけど、属性自体は変更管理されない。
+              * Gitの履歴は非永続的(といいきれるほどでもない…)
+                  - <span class="emphasize">リビジョンの変更操作が第一級市民</span>。
+                  - リビジョンの属性もリビジョンの一部で、変更管理される。
+                  - リビジョンの変更も変更管理される。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## 因みに
+            </script>
+          </section>
+          <section>
+            <div>GitHubやGitLabはGitリポジトリのホスティングサービス。</div>
+            <div style="height: 300px;">
+              <div class="left">
+                <img src="images/GitHub-Mark-Light-120px-plus.png" style="margin-top: 55px; width: 150px;" />
+              </div>
+              <div class="right">
+                <img src="images/gitlab-icon-rgb.svg" width="250" />
+              </div>
+            </div>
+            <div>Git自体は単なるコマンドラインツールなので、</div>
+            <div>それらが無くても使えます。</div>
+          </section>
+        </section>
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              # なぜ
+              # Gitを使うのか
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              # 変更書を書きたくないから。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### あと並行開発しやすいから。
+            </script>
+          </section>
+          <section data-state="iraira" class="typed">
+            <img src="images/hyoujou_text_man_iraira.png" />
+            <div>
+              <span id="iraira"></span>
+            </div>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              * 昔の人は、ソース修正したら修正内容を説明する変更書というドキュメントを書いてレビューする、ということをよくしていました。
+              * アジャイル文化圏では、そのようなレビュー用のドキュメントなどの中間生成物を忌諱します。
+                  - 変更書はソースと別に管理されることも多く、扱いにくい。
+                  - ユーザに届ける価値に直結しないものはなるべく作りたくない。
+
+              ⇒ <span class="emphasize">コミットメッセージが変更書の代わりにはるはず!</span>
+            </script>
+          </section>
+          <section>
+            <pre style="height: 50%;">
+26c98f81 2019-06-14 kaitoy レビュー指摘の反映。
+5b93bd5d 2019-06-03 kaitoy レビュー指摘の反映。
+5ec441d0 2019-06-02 kaitoy 変数名の修正漏れの修正漏れを修正。
+d00990f9 2019-06-02 kaitoy 変数名の修正漏れを修正。
+e3759ac9 2019-05-31 kaitoy コメントのタイポ修正。
+4ca93ce7 2019-05-31 kaitoy 変数名を修正。
+f16bd1fe 2019-05-31 kaitoy コメントのタイポ修正。
+b89e8689 2019-05-31 kaitoy 不良修正とリファクタリング。
+            </pre>
+            <img src="images/reviewer.png" />
+            <div>レビュアー</div>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## コミットメッセージは
+              ## <span class="emphasize">レビュアーフレンドリー</span>
+              ## に書きましょう。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Gitの履歴改ざん機能を活用して、コミット履歴から
+              ## <span class="emphasize">ノイズを除去</span>
+              ## しましょう。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### あしたのために (その1)
+              一つのコミットでは一つの修正だけをすること。
+
+              ```
+              b89e8689 2019-05-31 kaitoy 不良修正とリファクタリング。
+              ```
+
+              ### ↓
+
+
+              ```
+              df5f00b5 2019-05-31 kaitoy 不良修正。
+              d0e3ab0a 2019-05-31 kaitoy リファクタリング。
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### あしたのために (その2)
+              一つの修正は一つのコミットにすること。
+              <small>試行錯誤や修正ミスの修正の履歴はノイズです。</small>
+
+              ```
+              5ec441d0 2019-06-02 kaitoy 変数名の修正漏れの修正漏れを修正。
+              d00990f9 2019-06-02 kaitoy 変数名の修正漏れを修正。
+              e3759ac9 2019-05-31 kaitoy コメントのタイポ修正。
+              4ca93ce7 2019-05-31 kaitoy 変数名を修正。
+              f16bd1fe 2019-05-31 kaitoy コメントのタイポ修正
+              ```
+
+              ### ↓
+
+
+              ```
+              cc32d5d2 2019-06-02 kaitoy 変数名を修正。
+              c3861a78 2019-06-02 kaitoy コメントのタイポ修正。
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### あしたのために (その3～5)
+              * コミットメッセージは修正内容を具体的に書くこと。
+
+              * コミットメッセージにはチケット参照を付けること。
+                  - e.g. GitHubならIssue番号
+
+              * コミットメッセージには種別を表すタグを付けること。
+                - e.g. `[FIX]`、`[ADD]`、⚡
+                - [gitmoji](https://gitmoji.carloscuesta.me/)
+            </script>
+          </section>
+          <section>
+            <pre style="height: 50%;">
+26c98f81 2019-06-14 kaitoy ref#123 ⚡ レビュー指摘を受けて変数fooの初期化を最適化。
+5b93bd5d 2019-06-03 kaitoy ref#123 📝 レビュー指摘を受けて関数hogeのdocstringを改善。
+cc32d5d2 2019-06-02 kaitoy ref#123 🎨 変数名をコーディング規約に従って改善。
+c3861a78 2019-06-02 kaitoy ref#123 ✏️ コメントのタイポ修正。
+df5f00b5 2019-05-31 kaitoy ref#123 🐛 入力値チェックの範囲を仕様通りに修正。
+d0e3ab0a 2019-05-31 kaitoy ref#123 🎨 関数hogeを再利用できるようにリファクタリング。
+            </pre>
+            <img src="images/reviewer2.png" />
+            <div>レビュアー</div>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### 詳細な内容を3行目以降に
+              ### 書くこともできます。
+
+              ```txt
+              ref#123 🎨 関数hogeを再利用できるようにリファクタリング。
+
+              モジュールAのhogeをモジュールBでも使えるようにするため、
+              共通モジュールであるCに移動する。
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### 並行開発についてはさらっと。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              * 開発者ごとに<span class="emphasize">リポジトリの完全なクローンを持つ</span>ので、互いに干渉せずに作業できる。
+              * <span class="emphasize">ブランチの操作が軽い</span>ので、複数の修正を干渉せずに進められる。
+                  - ブランチについては後述。
+            </script>
+          </section>
+        </section>
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Gitのコマンドおさらい
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### 次章のリポジトリ詳解に向けて
+              ### `git`コマンドを簡単におさらいします。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## `git clone`
+              * リポジトリのクローンを作成する。
+              * リポジトリは`.git`ディレクトリ内に作られる。
+              * ワーキングディレクトリも作られる。
+                  - `master`ブランチがチェックアウトされる。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## `git add`
+              * 変更をステージングする。
+              * `git reset`でアンステージ出来る。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## `git commit`
+              * ステージングした変更をコミットする。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## `git status`
+              * ワーキングディレクトリの状態を表示する。
+                  - リポジトリとの差を表示する。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## `git checkout <ブランチ>`
+              * ブランチをチェックアウトする。
+                  - i.e. ブランチをワーキングディレクトリに展開する。
+            </script>
+          </section>
+        </section>
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              # Gitの
+              # リポジトリ詳解
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Gitのリポジトリは
+              ## <span class="emphasize">.gitディレクトリ</span>内に
+              ## 詰まっています。
+
+              `.git`が置かれるのがワーキングディレクトリ(のルート)。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## `.git`の中身
+              * オブジェクト格納領域
+              * インデックス
+              * 参照 (ref)
+              * シンボリック参照 (symref)
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### それぞれ説明します。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## オブジェクト格納領域
+              * <span class="emphasize">4種類のオブジェクト</span>が置かれる。
+                  - ブロブ: 一つのファイルを表す。
+                  - ツリー: 一つのディレクトリを表す。
+                  - コミット: 一つのコミットを表す。
+                  - タグ: 一つのタグの注釈を表す。
+              * 各オブジェクトはSHA1ハッシュ値で名付けられる。
+              * `.git/objects/`以下に格納される。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## インデックス
+              * <span class="emphasize">ある時点のファイルセット全体</span>を表す。
+              * `.git/index`というファイルに記述される。
+
+              ```
+              100644 ade14b9196fcad03cd0177c25ec1c31000ecf86a 0       .gitignore
+              100644 bbbbcd3415597bac39b0314f5c708d90684161fc 0       CHANGES.md
+              100644 f6b0b485fec1ee0bc53a452bc82cb6b7de2a1d91 0       LICENSE
+              100644 10e50f7b628d83f1b66f34f2d9d34029e7fc8670 0       README.md
+              100644 4dc8027d17765180fac5c3292a0195bb09b10ceb 0       assets/japanese-word-selection.gif
+              100644 dd92c48bae50307b55fb623c1b2beccab963096e 0       lib/japanese-word-selection.coffee
+              100644 8152af5ad39515fcd5021e3c8afee32910c0cf79 0       package.json
+              100644 9c0d180898d841bb319f51f1b1c7e07320426eeb 0       spec/japanese-word-selection-spec.coffee
+              100644 3d32fc0f42cc9babccd5525165e8227dce00a206 0       spec/japanese-word-selection-whitespace-spec.coffee
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### オブジェクト格納領域とインデックスの挙動を見てみましょう。
+            </script>
+          </section>
+          <section data-transition="convex-in none-out">
+              <h4>オブジェクト格納領域とインデックス</h4>
+              <img src="images/repo1.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>オブジェクト格納領域とインデックス</h4>
+              <img src="images/repo2.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>オブジェクト格納領域とインデックス</h4>
+              <img src="images/repo3.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>オブジェクト格納領域とインデックス</h4>
+              <img src="images/repo4.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>オブジェクト格納領域とインデックス</h4>
+              <img src="images/repo5.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>オブジェクト格納領域とインデックス</h4>
+              <img src="images/repo6.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>オブジェクト格納領域とインデックス</h4>
+              <img src="images/repo7.PNG" height="580" />
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### オブジェクト格納領域の
+              ### コミット以外を省略した図を
+              ### コミットグラフと呼ぶ。
+              ![](images/commits.png)
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### ここからは残りの
+              ### 参照とシンボリック参照の話。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## 参照 (ref)
+              * ブランチ、タグなどのこと。
+              * <span class="emphasize">一つのオブジェクトを指すポインタ。</span>
+              * `.git/refs/`以下にあるテキストファイル。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### ブランチの挙動を見てみましょう。
+            </script>
+          </section>
+          <section data-transition="convex-in none-out">
+              <h4>ブランチ</h4>
+              <img src="images/branch1.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>ブランチ</h4>
+              <img src="images/branch2.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>ブランチ</h4>
+              <img src="images/branch3.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>ブランチ</h4>
+              <img src="images/branch4.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+              <h4>ブランチ</h4>
+              <img src="images/branch5.PNG" height="580" />
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### このように、
+              ### ブランチは単なる参照なので
+              ### <span class="emphasize">非常に軽快に動作する。</span>
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### 次はタグの挙動。
+            </script>
+          </section>
+          <section data-transition="convex-in none-out">
+            <h4>タグ</h4>
+            <img src="images/tag1.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+            <h4>タグ</h4>
+            <img src="images/tag2.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+            <h4>タグ</h4>
+            <img src="images/tag3.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+            <h4>タグ</h4>
+            <img src="images/tag4.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+            <h4>タグ</h4>
+            <img src="images/tag5.PNG" height="580" />
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### このように、
+              ### <span class="emphasize">タグは動かないブランチ</span>
+              ### のようなもの。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## シンボリック参照 (symref)
+              * <span class="emphasize">参照(やオブジェクト)を指し示すポインタ。</span>
+              * `HEAD`とかのこと。
+                  * `HEAD`はカレントブランチを指すシンボリック参照。
+              * `.git/HEAD`などのテキストファイル。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### シンボリック参照のHEADの挙動も見てみましょう。
+            </script>
+          </section>
+          <section data-transition="convex-in none-out">
+            <h4>シンボリック参照</h4>
+            <img src="images/head1.PNG" height="580" />
+          </section>
+          <section data-transition="none">
+            <h4>シンボリック参照</h4>
+            <img src="images/head2.PNG" height="580" />
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### シンボリック参照にはほかにも
+              ### `FETCH_HEAD`とか`MERGE_HEAD`とかがあるけど、
+              ### 意識することはあまりない。
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## 以上がGitリポジトリの
+              ## ほぼ全容。
+              ## シンプル!
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Gitコマンドを使うときは、
+              ## オブジェクトや参照が
+              ## どのように変化するかを
+              ## 意識しましょう。
+            </script>
+          </section>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            ### 参考資料
+
+            * [Gitのリポジトリの中身をなるべく正確に理解する](https://www.kaitoy.xyz/2015/12/27/git-repository/)
+            * [Gitの良さが分からない？ ちょっとそこに座れ](https://www.kaitoy.xyz/2016/10/06/git-vs-subversion/)
+
+            ### もっと学びたいひとへ
+
+            * [Gitの分散バージョン管理の仕組み](https://www.kaitoy.xyz/2015/12/31/git-dvc/)
+            * [Gitのマージを図解する](https://www.kaitoy.xyz/2015/12/28/git-merge/)
+            * [git resetとrevertを図解する](https://www.kaitoy.xyz/2016/01/01/git-revert-reset/)
+            * [git checkoutを図解する](https://www.kaitoy.xyz/2016/10/08/git-checkout/)
+            * [git rebaseを図解する](https://www.kaitoy.xyz/2017/06/10/git-rebase/)
+          </script>
+        </section>
+      </div>
+    </div>
+
+    <script src="js/reveal.js"></script>
+
+    <script>
+      // More info about config & dependencies:
+      // - https://github.com/hakimel/reveal.js#configuration
+      // - https://github.com/hakimel/reveal.js#dependencies
+      Reveal.initialize({
+        slideNumber: true,
+        hash: true,
+        transition: 'convex',
+        dependencies: [
+          { src: 'plugin/markdown/marked.js' },
+          { src: 'plugin/markdown/markdown.js' },
+          { src: 'plugin/highlight/highlight.js', async: true },
+        ],
+      });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.9"></script>
+    <script src="js/git-deep-dive.js"></script>>
+
+    </script>
+  </body>
+</html>
